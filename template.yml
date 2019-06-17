@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform:
 - 'AWS::Serverless-2016-10-31'
 - 'AWS::CodeStar'
-
+ 
 Description:
   Creates a RESTful API using API Gateway, Lambda and DynamoDB for the Wild Rydes serverless devops workshop
 
@@ -80,4 +80,43 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      PermissionsBoundary: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/CodeStar_${ProjectId}_PermissionsBoundary'
+
+
+UpdateFunction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: 'uni-api-update'
+      Runtime: nodejs8.10
+      CodeUri: app
+      Handler: update.lambda_handler
+      Description: Update Unicorn
+      Timeout: 10
+      Events:
+        UPDATE:
+          Type: Api
+          Properties:
+            Path: /unicorns/{name}
+            Method: put
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref Table
+      Role: !GetAtt LambdaExecutionRole.Arn
+
+
+LambdaExecutionRole:
+    Description: Creating service role in IAM for AWS Lambda
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'CodeStar-${ProjectId}-Execution${Stage}'
+      AssumeRolePolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: [lambda.amazonaws.com]
+          Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
       PermissionsBoundary: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:policy/CodeStar_${ProjectId}_PermissionsBoundary'
